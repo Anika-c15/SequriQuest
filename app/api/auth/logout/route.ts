@@ -11,6 +11,12 @@ export async function POST() {
     expires: new Date(0),
     path: '/'
   });
+
+  response.cookies.set('token', '', { 
+    httpOnly: true,
+    expires: new Date(0),
+    path: '/'
+  });
   
   return response;
 }

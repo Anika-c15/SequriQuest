@@ -5,6 +5,8 @@ import Navbar from "../../../components/Navbar";
 import "../../styles/blink.css";
 import Footer from "@/components/Footer";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { CredentialResponse } from "@react-oauth/google";
 
 // Create a separate component for the parts that use useSearchParams
 interface LoginFormProps {
@@ -83,6 +85,7 @@ function LoginWithParams() {
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   
   // Use the imported useSearchParams hook
   const searchParams = useSearchParams();
@@ -159,6 +162,31 @@ function LoginWithParams() {
     }
   };
 
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: response.credential }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (data && data.success) {
+        setSuccess("Login successful, redirecting...");
+        setTimeout(() => router.push("/"), 1000);
+      } else {
+        setError(data?.message || "Google login failed");
+      }
+    } catch (error) {
+      console.log("An error occurred with Google login", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-6 py-12 text-center">
@@ -192,6 +220,19 @@ function LoginWithParams() {
           success={success}
         />
 
+        <div className="text-center mt-4">
+          <p className="text-sm text-green-300">Or login with:</p>
+          <div className="mt-2 flex justify-center items-center text-center px-0 py-2">
+          {googleClientId ? (
+            <GoogleOAuthProvider clientId={googleClientId}>
+              <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError("Google Login Failed")} />
+            </GoogleOAuthProvider>
+            ) : (
+              <p className="text-sm text-yellow-300">Google login not configured</p>
+            )}
+          </div>
+        </div>
+
         <p className="text-center text-sm text-green-300 mt-4">
           Need access?{" "}
           <Link href="/register">
@@ -207,11 +248,7 @@ export default function Login() {
   return (
     <>
       <Navbar />
-      <Suspense fallback={
-        <div className="container mx-auto px-6 py-12 text-center">
-          <p className="text-green-400 text-xl">Loading...</p>
-        </div>
-      }>
+      <Suspense fallback={<div className="container mx-auto px-6 py-12 text-center"><p className="text-green-400 text-xl">Loading...</p></div>}>
         <LoginWithParams />
       </Suspense>
       <Footer />

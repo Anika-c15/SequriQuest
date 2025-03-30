@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../../../components/Navbar";
 import "../../styles/blink.css";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { CredentialResponse } from "@react-oauth/google";
 export default function Register() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -15,6 +15,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -94,6 +95,26 @@ export default function Register() {
     }
   };
 
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: response.credential }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/";
+      } else {
+        setError("Google registration failed");
+      }
+    } catch (error) {
+      console.log("An error occurred with Google registration", error);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -170,6 +191,15 @@ export default function Register() {
               {loading ? "Processing..." : "Register Now"}
             </button>
           </form>
+
+          <div className="text-center mt-4">
+            <p className="text-sm text-green-300">Or register with:</p>
+            <div className="mt-2 flex justify-center items-center text-center px-0 py-2">
+              <GoogleOAuthProvider clientId={googleClientId || ""}>
+                <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError("Google Registration Failed")} />
+              </GoogleOAuthProvider>
+            </div>
+          </div>
 
           <p className="text-center text-sm text-green-300 mt-4">
             Already have an account?{" "}

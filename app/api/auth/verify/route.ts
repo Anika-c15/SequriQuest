@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const jwtCookie = cookieStore.get('jwt')?.value;
+    const jwtCookie = cookieStore.get('jwt')?.value || cookieStore.get('token')?.value;
     
     if (!jwtCookie) {
       return NextResponse.json({ isAuthenticated: false }, { status: 401 });
